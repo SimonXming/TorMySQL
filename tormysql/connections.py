@@ -227,10 +227,13 @@ class Connection(_Connection):
                 address = (self.host, self.port)
             sock.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
             sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+            # IOStream 基于 tornado.iostream.IOStream
             sock = IOStream(sock)
             sock.set_close_callback(self.stream_close_callback)
 
+            # getcurrent() 返回包装了当前函数的 greenlet
             child_gr = greenlet.getcurrent()
+            # main 是指 父greenlet(主函数, 时间循环?)
             main = child_gr.parent
             assert main is not None, "Execut must be running in child greenlet"
 
@@ -251,10 +254,15 @@ class Connection(_Connection):
                     child_gr.throw(future.exception())
                 else:
                     self._sock = sock
+                    # 将运行权交还给当前 greenlet
                     child_gr.switch()
 
+            # IOStream.connect 是 no-blocking 的 socket 操作
             future = sock.connect(address)
+            # 给 sock.connect 操作添加回调函数
             self._loop.add_future(future, connected)
+            # 然后把运行权交还给 父greenlet
+            # 直到连接成功，connected() 中会将运行权交还给 当前greenlet
             main.switch()
 
             self._rfile = self._sock

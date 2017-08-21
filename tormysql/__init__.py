@@ -38,6 +38,7 @@ version_info = (0, 3, 4)
 
 
 def connect(*args, **kwargs):
+    # 数据库引擎的入口是 connect
     client = Client(*args, **kwargs)
     return client.connect()
 
